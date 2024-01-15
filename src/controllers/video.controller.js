@@ -3,7 +3,7 @@ import { Video } from "../models/video.model.js"
 import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { asyncHandler } from "../utils/asyncHandler.js"
+import { asyncHandler } from "../utils/asynqhandler.js"
 import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
 
 
@@ -80,49 +80,78 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body
     // TODO: get video, upload to cloudinary, create video
 
-    if ([title, description].some((field) => field.trim() === "")) {
-        throw new ApiError(400, "All Field Are Required")
+    if ([title, description].some((field) => field?.trim() === "")) {
+        throw new ApiError(400, "All fields are required");
     }
 
     const videoFilePath = req.files?.videoFile[0].path;
-    const thumbnailFilePath = req.files?.thumbnail[0].path;
+    // const thumbnailFilePath = req.files?.thumbnail[0].path;
+
+
+    let thumbnailFilePath;
+    if (req.files && Array.isArray(req.files.thumbnail) && req.files.thumbnail.length > 0) {
+        thumbnailFilePath = req.files.thumbnail[0].path
+    }
+
+
 
     if (!videoFilePath) {
-        throw new ApiError(400, "Video File Not Found")
+        throw new ApiError(400, "VideoFileLocalPath is required")
     }
 
     if (!thumbnailFilePath) {
-        throw new ApiError(400, "thumbnail File Not Found")
+        throw new ApiError(400, "thumbnailFileLocalPath is required")
+    }
+
+    const videoFile = await uploadOnCloudinary(videoFilePath);
+    const thumbnail = await uploadOnCloudinary(thumbnailFilePath);
+
+
+
+    if (!videoFile.url) {
+        throw new ApiError(400, "Error While Uploading Avatar")
+    }
+
+    if (!thumbnail.url) {
+        throw new ApiError(400, "Error While Uploading Avatar")
     }
 
 
-    const video = Video.create({
+    const video = await Video.create({
         title,
         description,
         duration: videoFile.duration,
+
         videoFile: {
-            url: videoFile.url,
+            url: videoFile?.url,
             public_id: videoFile.public_id
         },
         thumbnail: {
-            url: thumbnail.url,
+            url: thumbnail?.url,
             public_id: thumbnail.public_id
         },
+
         owner: req.user?._id,
         isPublished: true
-    })
+    });
 
-    const videoUploaded = await Video.findById(video._id)
+
+
+    const videoUploaded = await Video.findById(video._id);
 
     if (!videoUploaded) {
         throw new ApiError(500, "videoUpload failed please try again !!!");
     }
 
 
+
     return res
         .status(200)
         .json(new ApiResponse(200, video, "Video uploaded successfully"));
 });
+
+
+
 
 
 
@@ -287,14 +316,13 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     //deleting old thumbnail and updating with new one
     const thumbnailToDelete = video.thumbnail.public_id;
+    const thumbnailPath = req.file?.path
 
-    const thumbnailLocalPath = req.file?.path;
-
-    if (!thumbnailLocalPath) {
+    if (!thumbnailPath) {
         throw new ApiError(400, "thumbnail is required");
     }
 
-    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+    const thumbnail = await uploadOnCloudinary(thumbnailPath);
 
     if (!thumbnail) {
         throw new ApiError(400, "thumbnail not found");
