@@ -397,59 +397,55 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
 
 
+    // toggle publish status of a video
+    const { videoId } = req.params;
 
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid videoId");
+    }
 
-    const togglePublishStatus = asyncHandler(async (req, res) => {
-        // toggle publish status of a video
-        const { videoId } = req.params;
+    const video = await Video.findById(videoId);
 
-        if (!isValidObjectId(videoId)) {
-            throw new ApiError(400, "Invalid videoId");
-        }
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
 
-        const video = await Video.findById(videoId);
-
-        if (!video) {
-            throw new ApiError(404, "Video not found");
-        }
-
-        if (video?.owner.toString() !== req.user?._id.toString()) {
-            throw new ApiError(
-                400,
-                "You can't toogle publish status as you are not the owner"
-            );
-        }
-
-        const toggledVideoPublish = await Video.findByIdAndUpdate(
-            videoId,
-            {
-                $set: {
-                    isPublished: !video?.isPublished
-                }
-            },
-            { new: true }
+    if (video?.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(
+            400,
+            "You can't toogle publish status as you are not the owner"
         );
+    }
 
-        if (!toggledVideoPublish) {
-            throw new ApiError(500, "Failed to toogle video publish status");
-        }
+    const toggledVideoPublish = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                isPublished: !video?.isPublished
+            }
+        },
+        { new: true }
+    );
 
-        return res
-            .status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    { isPublished: toggledVideoPublish.isPublished },
-                    "Video publish toggled successfully"
-                )
-            );
-    });
+    if (!toggledVideoPublish) {
+        throw new ApiError(500, "Failed to toogle video publish status");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { isPublished: toggledVideoPublish.isPublished },
+                "Video publish toggled successfully"
+            )
+        );
+});
 
 
-})
+
 
 export {
     getAllVideos,
