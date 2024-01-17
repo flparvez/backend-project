@@ -11,8 +11,9 @@ and also combines the tweet functionality from twitter into it. Find more about 
 
 | Content            | Link                                                                        |
 | -------------------| ----------------------------------------------------------------------------|
-<!-- | API Documentation  | [click here](https://documenter.getpostman.com/view/28570926/2s9YsNdVwW)    | -->
+
 | Model              | [click here](https://app.eraser.io/workspace/PM1ODzAP9V0PH1mCQU4g?origin=share)         |
+| API Documentation             | [click here](https://documenter.getpostman.com/view/22951397/2s9YsQ8VD7)         |
 
 ## Features
 
