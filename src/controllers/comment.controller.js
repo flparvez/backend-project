@@ -1,16 +1,16 @@
-import mongoose from "mongoose"
-import { Comment } from "../models/comment.model.js"
-import { ApiError } from "../utils/ApiError.js"
-import { ApiResponse } from "../utils/ApiResponse.js"
-import { asyncHandler } from "../utils/asynqhandler.js"
-import { Video } from "../models/video.model.js"
+import mongoose, { Schema } from "mongoose";
+import { Comment } from "../models/comment.model.js";
+import { Video } from "../models/video.model.js";
+import { Like } from "../models/like.model.js";
 
+import {ApiResponse} from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asynqhandler.js";
 
+// get all comments for a video
 const getVideoComments = asyncHandler(async (req, res) => {
-    //TODO: get all comments for a video
-    const { videoId } = req.params
-    const { page = 1, limit = 10 } = req.query
-
+    const { videoId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
     const video = await Video.findById(videoId);
 
@@ -21,32 +21,32 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const commentsAggregate = Comment.aggregate([
         {
             $match: {
-                video: new mongoose.Types.ObjectId(videoId),
-            },
+                video: new mongoose.Types.ObjectId(videoId)
+            }
         },
         {
             $lookup: {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
-                as: "owner",
-            },
+                as: "owner"
+            }
         },
         {
             $lookup: {
                 from: "likes",
                 localField: "_id",
                 foreignField: "comment",
-                as: "likes",
-            },
+                as: "likes"
+            }
         },
         {
             $addFields: {
                 likesCount: {
-                    $size: "$likes",
+                    $size: "$likes"
                 },
                 owner: {
-                    $first: "$owner",
+                    $first: "$owner"
                 },
                 isLiked: {
                     $cond: {
@@ -55,7 +55,12 @@ const getVideoComments = asyncHandler(async (req, res) => {
                         else: false
                     }
                 }
-            },
+            }
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
         },
         {
             $project: {
@@ -65,16 +70,16 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 owner: {
                     username: 1,
                     fullName: 1,
-                    "avatar.url": 1,
+                    "avatar.url": 1
                 },
                 isLiked: 1
-            },
-        },
+            }
+        }
     ]);
 
     const options = {
         page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
+        limit: parseInt(limit, 10)
     };
 
     const comments = await Comment.aggregatePaginate(
@@ -85,12 +90,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, comments, "Comments fetched successfully"));
+});
 
-})
-
+// add a comment to a video
 const addComment = asyncHandler(async (req, res) => {
-    // TODO: add a comment to a video
-
     const { videoId } = req.params;
     const { content } = req.body;
 
@@ -107,7 +110,7 @@ const addComment = asyncHandler(async (req, res) => {
     const comment = await Comment.create({
         content,
         video: videoId,
-        owner: req.user?._id,
+        owner: req.user?._id
     });
 
     if (!comment) {
@@ -119,10 +122,8 @@ const addComment = asyncHandler(async (req, res) => {
         .json(new ApiResponse(201, comment, "Comment added successfully"));
 });
 
-
-
+// update a comment
 const updateComment = asyncHandler(async (req, res) => {
-    // TODO: update a comment
     const { commentId } = req.params;
     const { content } = req.body;
 
@@ -136,8 +137,6 @@ const updateComment = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Comment not found");
     }
 
-
-
     if (comment?.owner.toString() !== req.user?._id.toString()) {
         throw new ApiError(400, "only comment owner can edit their comment");
     }
@@ -146,8 +145,8 @@ const updateComment = asyncHandler(async (req, res) => {
         comment?._id,
         {
             $set: {
-                content,
-            },
+                content
+            }
         },
         { new: true }
     );
@@ -161,11 +160,10 @@ const updateComment = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200, updatedComment, "Comment edited successfully")
         );
+});
 
-})
-
+// delete a comment
 const deleteComment = asyncHandler(async (req, res) => {
-    // TODO: delete a comment
     const { commentId } = req.params;
 
     const comment = await Comment.findById(commentId);
@@ -174,24 +172,22 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Comment not found");
     }
 
-    // if (comment?.owner.toString() !== req.user?._id.toString()) {
-    //     throw new ApiError(400, "only comment owner can delete their comment");
-    // }
-
     if (comment?.owner.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "only comment owner can edit their comment");
+        throw new ApiError(400, "only comment owner can delete their comment");
     }
 
     await Comment.findByIdAndDelete(commentId);
 
+    await Like.deleteMany({
+        comment: commentId,
+        likedBy: req.user
+    });
+
     return res
         .status(200)
-        .json(new ApiResponse(200, {}, "Comment deleted successfully"));
-})
+        .json(
+            new ApiResponse(200, { commentId }, "Comment deleted successfully")
+        );
+});
 
-export {
-    getVideoComments,
-    addComment,
-    updateComment,
-    deleteComment
-}
+export { getVideoComments, addComment, updateComment, deleteComment };

@@ -1,15 +1,12 @@
-import mongoose, { isValidObjectId } from "mongoose"
-import { User } from "../models/user.model.js"
-import { Subscription } from "../models/subscription.model.js"
-import { ApiError } from "../utils/ApiError.js"
-import { ApiResponse } from "../utils/ApiResponse.js"
-import { asyncHandler } from "../utils/asynqhandler.js"
-
+import mongoose, { isValidObjectId } from "mongoose";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asynqhandler.js";
+import {ApiResponse} from "../utils/ApiResponse.js";
+import { Subscription } from "../models/subscription.model.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
-    const { channelId } = req.params
+    const { channelId } = req.params;
     // TODO: toggle subscription
-
 
     if (!isValidObjectId(channelId)) {
         throw new ApiError(400, "Invalid channelId");
@@ -36,8 +33,8 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
     await Subscription.create({
         subscriber: req.user?._id,
-        channel: channelId
-    })
+        channel: channelId,
+    });
 
     return res
         .status(200)
@@ -48,13 +45,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
                 "subscribed successfully"
             )
         );
-
-
-})
+});
 
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const { channelId } = req.params
+    let { channelId } = req.params;
+
     if (!isValidObjectId(channelId)) {
         throw new ApiError(400, "Invalid channelId");
     }
@@ -64,11 +60,10 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const subscribers = await Subscription.aggregate([
         {
             $match: {
-                channel: channelId
+                channel: channelId,
             },
         },
         {
-
             $lookup: {
                 from: "users",
                 localField: "subscriber",
@@ -123,7 +118,6 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         },
     ]);
 
-
     return res
         .status(200)
         .json(
@@ -133,13 +127,11 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                 "subscribers fetched successfully"
             )
         );
-
-
-})
+});
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params
+    const { subscriberId } = req.params;
 
     const subscribedChannels = await Subscription.aggregate([
         {
@@ -192,6 +184,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
                         description: 1,
                         duration: 1,
                         createdAt: 1,
+                        views: 1
                     },
                 },
             },
@@ -207,11 +200,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
                 "subscribed channels fetched successfully"
             )
         );
+});
 
-})
-
-export {
-    toggleSubscription,
-    getUserChannelSubscribers,
-    getSubscribedChannels
-}
+export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };

@@ -1,10 +1,10 @@
-import mongoose from "mongoose"
-import { Video } from "../models/video.model.js"
-import { Subscription } from "../models/subscription.model.js"
-import { Like } from "../models/like.model.js"
-import { ApiError } from "../utils/ApiError.js"
-import { ApiResponse } from "../utils/ApiResponse.js"
-import { asyncHandler } from "../utils/asynqhandler.js"
+import mongoose from "mongoose";
+import { Video } from "../models/video.model.js";
+import { Subscription } from "../models/subscription.model.js";
+import { Like } from "../models/like.model.js";
+import {ApiResponse} from "../utils/ApiResponse.js";
+
+import { asyncHandler } from "../utils/asynqhandler.js";
 
 const getChannelStats = asyncHandler(async (req, res) => {
     // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
@@ -24,7 +24,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
                 }
             }
         }
-    ])
+    ]);
 
     const video = await Video.aggregate([
         {
@@ -63,8 +63,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
                 }
             }
         }
-    ])
-
+    ]);
 
     const channelStats = {
         totalSubscribers: totalSubscribers[0]?.subscribersCount || 0,
@@ -82,20 +81,18 @@ const getChannelStats = asyncHandler(async (req, res) => {
                 "channel stats fetched successfully"
             )
         );
-
-})
+});
 
 const getChannelVideos = asyncHandler(async (req, res) => {
     // TODO: Get all the videos uploaded by the channel
     const userId = req.user?._id;
+
     const videos = await Video.aggregate([
         {
             $match: {
                 owner: new mongoose.Types.ObjectId(userId)
-
             }
         },
-
         {
             $lookup: {
                 from: "likes",
@@ -115,6 +112,11 @@ const getChannelVideos = asyncHandler(async (req, res) => {
             }
         },
         {
+            $sort: {
+                createdAt: -1
+            }
+        },
+        {
             $project: {
                 _id: 1,
                 "videoFile.url": 1,
@@ -128,25 +130,19 @@ const getChannelVideos = asyncHandler(async (req, res) => {
                 },
                 isPublished: 1,
                 likesCount: 1
-
             }
         }
-    ])
-
+    ]);
 
     return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                videos,
-                "channel stats fetched successfully"
-            )
-        );
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            videos,
+            "channel stats fetched successfully"
+        )
+    );
+});
 
-})
-
-export {
-    getChannelStats,
-    getChannelVideos
-}
+export { getChannelStats, getChannelVideos };
