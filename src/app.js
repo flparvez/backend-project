@@ -7,8 +7,8 @@ const app = new express();
 
 app.use(
     cors({
-        origin: "https://flptube.vercel.app/",
-        credentials: true,
+        origin: "*",
+        // credentials: true,
     })
 );
 
